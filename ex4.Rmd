@@ -1,0 +1,137 @@
+---
+title: "Time series"
+author: "Jialian Zhou"
+output: pdf_document
+---
+
+```{r, warning=FALSE,message=FALSE}
+library(fpp2)
+```
+
+
+# Exercise 4: Consider the daily IBM stock prices (data set ibmclose).
+
+```{r}
+#  Daily IBM stock prices
+
+ibmclose <- window(ibmclose) 
+head(ibmclose, 24) 
+```
+
+## (a) Produce some plots of the data in order to become familiar with it.
+
+The data set contains the daily IBM stock's prices at closure time. 
+
+```{r, fig.align = "center"}
+ibmclose %>%  
+autoplot() + xlab("Time")+ ylab("IBM stock prices")+ ggtitle("Daily IBM stock prices") 
+```
+
+The following conclusions can be drawn from this first plot:
+
+- There is not a clear trend: the series has some ups and downs, which makes the series unpredictable.
+
+- There is a big drop in the prices right after the 200 day mark.
+
+- Not seasonal pattern can be detected as the frequency of the data is daily and only for a year.
+
+- The mean method is not going to be the best option due to the heterogeneity and the naïve method will give  the most conservative forecast.
+
+The autocorrelation plot:
+
+```{r, fig.align = "center"}
+ggAcf(ibmclose) + ggtitle("ACF of Daily IBM stock prices")
+```
+
+In the autocorrrelation plot we can conclude that the IBM stock prices are highly correlated with each other. That is to say, when the stock price rises, it tends to continue this way and when it falls, it keeps going downwards.
+
+
+## (b) Split the data into a training set of 300 observations and a test set of 69 observations.
+
+```{r, fig.align = "center"}
+# Split
+train <- subset(ibmclose, end = 300)
+test <- subset(ibmclose, start = 301, end = length(ibmclose))
+
+# Plot of the split
+plot(ibmclose)
+lines(train,col="red")
+lines(test, col="blue")
+```
+
+
+## (c) Try various benchmark methods to forecast the training set and compare the results on the test set. Which method did best?
+
+```{r, fig.align = "center"}
+ibmclosefit1 <- meanf(train,h=69) 
+ibmclosefit2 <- rwf(train,h=69)
+ibmclosefit3 <- rwf(train, drift=TRUE,h=69)
+
+autoplot(train) +
+  autolayer(ibmclosefit1, series="Mean", PI=FALSE) +
+  autolayer(ibmclosefit2, series="Naïve", PI=FALSE) +
+  autolayer(ibmclosefit3, series="Drift", PI=FALSE) +
+  xlab("Day") + ylab("Prices") +
+  ggtitle("Forecasts for IBM stock prices") +
+  guides(colour=guide_legend(title="Forecast"))
+```
+
+The mean method seems to perform the worst out of the three methods, which is to expected as the series is not stationary. And, as it has been stated before, we will be sticking to the naïve method as it gives the most reasonable forecast. 
+
+Now, we will be comparing the results with the real data.
+
+```{r, fig.align = "center"}
+autoplot(window(ibmclose)) +
+  autolayer(ibmclosefit1, series="Mean", PI=FALSE) +
+  autolayer(ibmclosefit2, series="Naïve", PI=FALSE) +
+  autolayer(ibmclosefit3, series="Drift", PI=FALSE) +
+  xlab("Day") + ylab("Prices") +
+  ggtitle("Forecasts for IBM stock prices") +
+  guides(colour=guide_legend(title="Forecast"))
+```
+
+In order to evaluate the predictive performance, the **accuracy** been calculated  based on the test set for each forecasting method.
+
+```{r}
+accuracy(ibmclosefit1, test)
+```
+
+```{r}
+accuracy(ibmclosefit2, test)
+```
+
+```{r}
+accuracy(ibmclosefit3, test)
+```
+
+The best results are obtained with the **drift method** for this test set, but the difference with the **naïve method** (the second best) is minimum. However, it cannot be assured that the data will follow the descent trend which is forecast by the drift method. 
+
+## (d) For the best method, compute the residuals and plot them. What do the plots tell you?
+
+After the previous section, there are still be some doubts about which is the best method, the naïve or the drift. Therefore, we have computed the residuals for both methods.
+
+```{r}
+# Naïve
+train_naive <- naive(train,h=69)
+res_naive <- residuals(train_naive)
+summary(res_naive)
+checkresiduals(train_naive)
+```
+
+```{r}
+# Drift method
+train_drift <- rwf(train, drift=TRUE,h=69)
+res_drift <- residuals(train_drift)
+summary(res_drift)
+checkresiduals(train_drift)
+```
+
+Although both methods have some lags which exceed the 95% confidence interval, the residual plots do not show any kind of pattern. Therefore, they could behave as white noise.
+
+However, the p-values obtained in the Ljung-Box test for both methods are smaller than 0.05, so the null hypothesis can be rejected: we cannot conclude that the data are not  independently distributed.
+
+$$ H_0 = The \ data \ are \ independently \ distributed \\
+H_1 = The \ data \ are \ not \ independently \ distributed
+$$
+
+Finally, looking at the residuals and the normal distribution, we can see that the residuals obtained with the **naïve method** are better adjusted to the gaussian distribution. Hence, the **naïve method** was the correct one in this case.
