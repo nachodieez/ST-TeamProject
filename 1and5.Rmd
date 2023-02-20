@@ -1,0 +1,257 @@
+---
+title: "Assignment 1"
+author: 
+  -   "Pablo Vidal Fernández"
+  -   "Cripto Ignacio Díez Ruiz"
+  -   "Jialian Zhou He"
+  -   "Carlos Roldán Piñero"
+  
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, 
+                      message = F)
+```
+
+```{r, echo = F, results = "hide"}
+if(!require(fpp2)){
+  install.packages("fpp2")
+}
+
+if(!require(fpp3)){
+  install.packages("fpp3")
+}
+
+if(!require(ggplot2)){
+  install.packages("ggplot2")
+}
+
+if(!require(ggpubr)){
+  install.packages("ggpubr")
+}
+
+library(fpp2)
+library(fpp3)
+library(ggplot2)
+library(ggpubr)
+```
+
+
+## Exercise 1 
+
+Use the appropiate graphics functions, explore features from the following time series: **bicoal**, **bricksq**, **hsales**, **ibmclose**, **Internet**, **writing**.
+
+-   Can you spot any seasonality, cyclicity and trend?
+
+-   What do you learn about the time series?
+
+-   Justify the choice of the graphic function. 
+
+### Bicoal TS
+
+The first thing that we have to check is the frequency of the time series:
+
+```{r}
+frequency(bicoal)
+```
+It is annual data, therefore it cannot be seasonal.
+
+Plotting the series and the first differences:
+```{r, fig.cap="Bicoal"}
+p1 <- autoplot(bicoal, main = "Bicoal TS", xlab = "Year", ylab = "Bicoal")
+p2 <- autoplot(diff(bicoal), main = "Bicoal TS", xlab = "Year", ylab = "Lagged bicoal")
+ggarrange(p1, p2, ncol = 2)
+```
+
+We can see that there is no overall trend, and there seems to be a cyclic behaviour every 10 years. The plot for the differences resembles white noise. At this point, one could suspect stationarity.
+
+```{r}
+ggAcf(bicoal, lag.max = 45)
+```
+We can observe a sinusoidal pattern, and it goes towards zero. It seems that this time series is stationary, with a cyclic component.
+
+
+### Bricksq TS
+
+```{r}
+frequency(bricksq)
+```
+We have quarterly data. Thus, seasonality can exist.
+
+```{r}
+par(mfrow=c(1,2))
+p3 <- autoplot(bricksq, main = "Bricksq TS", xlab = "Year", ylab = "Bricksq")
+p4 <- autoplot(diff(bricksq, lag = 1), main = "Bricksq TS", xlab = "Year", ylab = "Lagged Bricksq")
+ggarrange(p3, p4, ncol = 2)
+
+```
+
+Looking at the plot, we can see that there might be a seasonal component and a trend. The series doesn't appear to be stationary.
+
+```{r}
+ggAcf(bricksq)
+```
+
+As the autocorrelations for the first lags are large and they slowly decrease, we can say that there is a trend. Moreover, we can see that each 4 lags the autocorrelation is higher, a sign of seasonality.
+
+```{r}
+p5 <- ggseasonplot(bricksq)
+p5
+```
+There are a few outliers in the Q4 for some years, and all years seem to present a very similar pattern: Q2 and Q3 are higher than Q1 and Q4.
+
+We can appreciate that pattern more clearly in the subseries plot:
+
+```{r}
+p6 <- ggsubseriesplot(bricksq)
+p6
+```
+
+### Hsales TS ###
+
+```{r}
+frequency(hsales)
+```
+We have monthly data, thus a seasonal component might exist. 
+
+```{r}
+p7 <- autoplot(hsales, main = "Hsales TS")
+p8 <- autoplot(diff(hsales, lag = 1), main = "Bricksq TS", xlab = "Year", ylab = "Lagged Hsales")
+
+ggarrange(p7, p8, ncol = 2)
+```
+
+At a first glance, we can see a cyclical component in the series. There doesn't appear to be any trend. Moreover, a seasonal component can be appreciated within each year.
+
+```{r}
+p9 <- ggseasonplot(hsales)
+p9
+```
+
+We can see that march and april tend to be the months with higher volume, whereas the last months of the year come with a decrease. In August, there seems to be a recuperation with respect to July.
+
+```{r}
+p10 <- ggAcf(hsales)
+p10
+```
+
+
+There are peaks at 12 and 24 in the correlogram, confirming seasonality. There is no evidence for a trend.
+
+### Ibmclose TS
+
+```{r}
+frequency(ibmclose)
+```
+
+The data is daily.
+
+```{r}
+autoplot(ibmclose)
+```
+
+The data is daily, so there can't be a seasonal nor cyclic component. It doesn't look like there is a trend either. 
+
+```{r}
+ggAcf(ibmclose, lag.max = 50)
+```
+
+The series is definitely not stationary. Correlations are very high and don't go rapidly towards zero.
+
+### Internet TS
+
+```{r}
+frequency(internet)
+autoplot(internet)
+```
+
+Using *help*, we can see that the dataset contains the number of user logged on to an internet server each minute over a 100-minute period. Consequently, there won't be a cyclic or seasonal component.
+
+It doesn't look like there is a trend. The series goes up, then goes down and finally it starts rising again. 
+
+```{r}
+ggAcf(internet, lag.max = 90)
+```
+We can see oscillations between positive and negative autocorrelations, consistent with the ups and downs in the series. It doesn't go rapidly towards zero, so the data is not stationary.
+
+
+### Writing TS
+
+```{r}
+frequency(writing)
+```
+We have monthly data. 
+
+```{r}
+autoplot(writing)
+```
+
+We can see a positive linear trend, a strong seasonality and there doesn't seem to be a cyclic component.
+
+```{r}
+ggseasonplot(writing)
+```
+In this plot, we can appreaciate that each year, values keep getting higher, so there is a positive trend. Furthermore, there is always a big drop in August, possibly related to the vacation period of workers.
+
+```{r}
+ggsubseriesplot(writing)
+```
+
+We can see the same information in the subseries plot.
+
+```{r}
+autoplot(diff(writing))
+```
+We can see in the first differences series that variability also grows as time passes.
+
+```{r}
+ggAcf(writing)
+```
+Peaks at 12 and 24 confirm the seasonality.
+
+## Exercise 5
+
+The data below represent the monthly sales (in thousands) of product A for a plastics manufacturer for years 1 through 5 (data set plastics).
+
+(a) Plot the time series of sales of product A. Can you identify any key feature? Explain what you
+see.
+
+```{r}
+autoplot(plastics)
+```
+
+We can see a strong seasonality component, with an incremental production up to the summer, and then a decrease; and also a positive and linear trend. 
+
+(b) Use an STL decomposition to calculate the trend-cycle and seasonal indices. (Experiment with
+having fixed or changing seasonality). Do you see any difference?
+
+```{r}
+
+```
+
+(c) Please, discuss whether the results support the graphical interpretation form part (a).
+
+```{r}
+
+```
+
+(d) Compute and plot the seasonally adjusted data.
+
+```{r}
+
+```
+
+(e) Use a random walk to produce forecasts of the seasonally adjusted data.
+
+```{r}
+
+```
+
+(f) Re-seasonilize the results to give forecasts on the original scale.
+
+```{r}
+
+```
+
