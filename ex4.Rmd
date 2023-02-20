@@ -51,7 +51,7 @@ In the autocorrrelation plot we can conclude that the IBM stock prices are highl
 ```{r, fig.align = "center"}
 # Split
 train <- subset(ibmclose, end = 300)
-test <- subset(ibmclose, start = 301, end = length(ibmclose))
+test  <- subset(ibmclose, start = 301, end = length(ibmclose))
 
 # Plot of the split
 plot(ibmclose)
@@ -113,7 +113,7 @@ After the previous section, there are still be some doubts about which is the be
 ```{r}
 # Naïve
 train_naive <- naive(train,h=69)
-res_naive <- residuals(train_naive)
+res_naive   <- residuals(train_naive)
 summary(res_naive)
 checkresiduals(train_naive)
 ```
@@ -121,7 +121,7 @@ checkresiduals(train_naive)
 ```{r}
 # Drift method
 train_drift <- rwf(train, drift=TRUE,h=69)
-res_drift <- residuals(train_drift)
+res_drift   <- residuals(train_drift)
 summary(res_drift)
 checkresiduals(train_drift)
 ```
@@ -130,8 +130,10 @@ Although both methods have some lags which exceed the 95% confidence interval, t
 
 However, the p-values obtained in the Ljung-Box test for both methods are smaller than 0.05, so the null hypothesis can be rejected: we cannot conclude that the data are not  independently distributed.
 
-$$ H_0 = The \ data \ are \ independently \ distributed \\
-H_1 = The \ data \ are \ not \ independently \ distributed
-$$
+
+\begin{align*}
+H_0 &= The \ data \ are \ independently \ distributed \\
+H_1 &= The \ data \ are \ not \ independently \ distributed
+\end{align*}
 
 Finally, looking at the residuals and the normal distribution, we can see that the residuals obtained with the **naïve method** are better adjusted to the gaussian distribution. Hence, the **naïve method** was the correct one in this case.
