@@ -1,0 +1,266 @@
+---
+title: "![](uc3m_logo.png) \\ Time Series 1"
+author: 
+    - "Jialian Zhou He -- 100407485"
+    - "José Ignacio Díez Ruíz -- 100487766"
+    - "Pablo Vidal Fernández -- 100483812"
+    - "Carlos Roldán Piñero -- 100484904"
+date: "February 2023"
+header-includes:
+  - \renewcommand{\and}{\\}
+output: pdf_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(fpp2)
+library(fpp3)
+```
+
+# Exercise 2
+
+We will approach this exercise by first giving the chosen match and then
+justifying it:
+
+- `1 - D`. The first time series exhibits a stationary behavior, the most
+stationary among them.
+This implies that the autocorrelations should fall fast and be small,
+more so when comparing with the rest, which happens for `D`.
+Moreover, `D` also shows the seasonality which is somewhat inferred in `1`.
+
+- `2 - C`. This one exhibits a clear linear tendency, which points to slowly
+decreasing autocorrelations, and strong seasonality, which should be manifested
+in a periodic shape of the lag plot.
+Both of this characteristics are prominently present in `C`.
+
+- `3 - B`. Once again we have a somewhat stationary time series but with a much
+more strong seasonality component this time.
+This should manifest in much higher autocorrelations with still a very fast
+shrink tendency on the lag plot.
+It is true that `C` also fulfills this set of constraints, but exhibits
+much smaller autocorrelations than `B`, which is why we chose the latter.
+
+- `4 - A`. For the last one, we see tendency on the time series and an
+lack of any kind of seasonality.
+Hence the lag plot should follow a slowly decrease without periodic
+peaks, just what `A` shows.
+
+# Exercise 6
+
+```{r, include = FALSE}
+library(fpp2)
+```
+
+We take the data `visitors` from the `fpp2` package.
+It exhibits the following form:
+
+```{r}
+head(visitors, 5 * 12)
+autoplot(visitors, ylab = "visitors", xlab = "Year",
+         main="Australian short-term overseas visitors")
+```
+
+## Part A
+
+We note a strong seasonality component which can be more prominently
+shown in a seasonal plot or a polar plot.
+In it we note that there is a yearly period with a clear anual pattern.
+
+```{r}
+ggseasonplot(visitors, ylab = "visitors", xlab = "Year", main="Seasonal plot")
+ggseasonplot(visitors, ylab = "visitors", xlab = "Year", polar = TRUE, main="Polar plot")
+```
+
+Moreover, in the corresponding lag plot we observe a slowly decreasing
+autocorrelation, hinting tendency, combined with periodicity in the peaks,
+signing mark of seasonality.
+
+```{r}
+ggAcf(visitors) + ggtitle("Lag plot")
+```
+
+Let us plot two decompositions, one additive and another multiplicative, and
+decide which of them better fits our data.
+
+We see the additive one leads to a distribution of residuals which
+does not totally look as white noise.
+Indeed, we observe some dip near the center of the time range.
+
+```{r}
+autoplot(decompose(visitors, "additive"))
+```
+
+On the other hand, with the multiplicative decomposition we observe a more
+even distribution of residual, which, moreover, are in magnitude significantly
+smaller than those of the additive decomposition.
+
+```{r}
+autoplot(decompose(visitors, "multiplicative"))
+```
+
+With these facts in mind, we decide the latter, the multiplicative case,
+better fits our data.
+
+## Part B
+
+As discussed before, we will use a multiplicative seasonal decomposition
+when performing a Holter-Winters fit.
+We also decide that, for both, performance of the forecast and numerical
+cost, we will limit the data used for forecasting from the year 2000
+onwards.
+
+```{r}
+vis_cut <- window(visitors, start = 2000)
+fit_hw  <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12)
+
+autoplot(window(vis_cut, start = 1995)) +
+    autolayer(fit_hw, PI = FALSE, col = "deepskyblue4") +
+    xlab("Year") + ylab("Visitors") + ggtitle("Forecasting 2 years")
+```
+
+We see that the previously made decision does indeed seem grounded as
+the forecast, at least on the naked eye, does look as a good candidate.
+
+## Part C
+
+We are now tasked with testing the forecast with different options.
+Taking the same Holter-Winters multiplicative model, we experiment
+by choosing exponential trend, damped trend and both of them at once.
+If we plot them together we see that all of them do *a priori* a good
+job in forecasting the following two years.
+In this regards, the exponential trend offers more volatile extrema,
+while the damped offers the smallest.
+The curve with both of them does seem like a middle compromise between
+the exponential and damped models.
+
+```{r}
+fit_exp  <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12, exponential = TRUE)
+fit_dam  <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12, damped = TRUE)
+fit_both <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12,
+               exponential = TRUE, damped = TRUE)
+
+autoplot(window(vis_cut, start = 2000)) +
+    autolayer(fit_exp,  PI = FALSE, series = "Exponential") +
+    autolayer(fit_dam,  PI = FALSE, series = "Damped") +
+    autolayer(fit_both, PI = FALSE, series = "Exp + Damp") +
+    xlab("Year") + ylab("Visitors") + ggtitle("Testing HW hyperparameters") +
+    guides(colour = guide_legend(title ="Model"))
+```
+
+It seems clear that by eyeballing we will not be able to properly
+select one of these models as the most appropiate.
+Hence we resort to metrics such as AIC, AICc and BIC.
+Looking at them it seems that the previous modifications
+do indeed improve on the forecasting.
+Among them, the exponential and damped takes the edge over the 
+just damped one by a slight margin, giving us an indication that
+reduced extrema better forecasts our time series.
+
+```{r}
+knitr::kable(data.frame(
+    "Default"  = c(fit_hw$model$aic,   fit_hw$model$aicc,   fit_hw$model$bic),
+    "Exp"      = c(fit_exp$model$aic,  fit_exp$model$aicc,  fit_exp$model$bic),
+    "Damped"   = c(fit_dam$model$aic,  fit_dam$model$aicc,  fit_dam$model$bic),
+    "Exp.Damp" = c(fit_both$model$aic, fit_both$model$aicc, fit_both$model$bic),
+    row.names = c("AIC", "AICc", "BIC")
+))
+```
+
+## Part D
+
+This is a just computational part in which are tasked with fitting
+three models:
+
+1. An ETS model.
+Automatically this chooses the model for the error, trend and seasonality
+that better suits our data.
+Note that it chose the same that we used for our Holter-Winter model,
+giving us confidence on our previously extracted conclusions.
+
+```{r}
+fit_ets <- ets(vis_cut)
+summary(fit_ets)
+```
+
+2. An additive ETS model with Box-Cox transformed data.
+Here we impose the additivity of the model but let the algorithm to
+determine the correct $\lambda$ needed for the transformation.
+
+```{r}
+fit_bc  <- ets(vis_cut, model = "AAA", lambda = "auto")
+summary(fit_bc)
+```
+
+3. An additive ETS model applied to the STL-seasonality-freed
+Box-Cox transformed time series.
+Again, we let the algorithm decide the appropiate transformation
+parameter.
+Nonetheless, we fix the seasonality period as 12 months.
+
+```{r}
+fit_stl <- stlm(vis_cut, s.window = 12, method = "ets", lambda = "auto")
+summary(fit_stl)
+```
+
+## Part E
+
+At last, we are tasked with comparing these last three approaches
+to see which of them performs better.
+To do so, we first plot all of them together and see whether there
+is some significant difference between them visible by the naked eye.
+
+If we look at the forecast, we note that the additive ETS applied
+to the Box-Cox transformed data has in general higher values.
+Then, when using the seasonality adjust forecast, there is a shift
+to lower values while keeping a similar shape.
+Lastly, the plain ETS prediction seems to have smaller values in general,
+with more prominent minima.
+
+```{r}
+autoplot(vis_cut) +
+    autolayer(forecast::forecast(fit_ets, h = 2 * 12),
+              PI = FALSE, series = "ETS") +
+    autolayer(forecast::forecast(fit_bc,  h = 2 * 12),
+              PI = FALSE, series = "Box-Cox") +
+    autolayer(forecast::forecast(fit_stl, h = 2 * 12),
+              PI = FALSE, series = "BC-Seas") + 
+    xlab("Year") + ylab("Visitors") + ggtitle("Three model comparison") +
+    guides(colour = guide_legend(title ="Model"))
+```
+
+Again, just by looking at the graph we cannot tell which of them better
+describe our time series.
+Thus we resort to accuracy metrics.
+More exactly, we will be using the `tsCV` function which performs
+cross-validations and return a vector of residuals.
+We then sum the square residuals and declare the one with the
+smallest sum as the most suitable for our case.
+We also plot them to have visual feedback on the magnitude and whether
+they resemble white noise, which all of them do.
+This happens for the last of the models, which performed
+surprisingly better than the rest, especially in the early 2000 region,
+highlighting the vital importance of taking the necessary preprocessing
+steps before fitting and forecasting.
+
+```{r}
+f1 <- function(y, h) { forecast::forecast(ets(y), h = h) }
+f2 <- function(y, h) { forecast::forecast(ets(y, model = "AAA",
+                                          lambda = "auto"), h = h) }
+f3 <- function(y, h) { forecast::forecast(
+  stlm(y, s.window = 12, method = "ets", lambda = "auto"), h = h) }
+e1 <- tsCV(vis_cut, f1, h = 1)
+e2 <- tsCV(vis_cut, f2, h = 1)
+e3 <- tsCV(vis_cut, f3, h = 1)
+
+autoplot(e1, series = "ETS") +
+    autolayer(e2, series = "Box-Cox") +
+    autolayer(e3, series = "BC-Seas") +
+    xlab("Year") + ylab("Visitors") + ggtitle("Residuals") +
+    guides(colour = guide_legend(title ="Model"))
+
+c(
+    "ETS"     = sqrt(mean(e1 ^ 2, na.rm = TRUE)),
+    "Box-Cox" = sqrt(mean(e2 ^ 2, na.rm = TRUE)),
+    "BC-Seas" = sqrt(mean(e3 ^ 2, na.rm = TRUE))
+)
+```
