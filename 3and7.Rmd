@@ -1,0 +1,304 @@
+---
+title: "3and7"
+author: "el mejor grupo de ts que un niño podría desear"
+date: "`r Sys.Date()`"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(fpp2)
+library(fpp3)
+library(forecast)
+library(tseries)
+library(fma)
+library(expsmooth)
+library(lmtest)
+```
+
+# Exercise 3
+
+> For each of the following series, make a graph of the data with forecasts using the most appropriate of the four benchmark methods: mean, naive, seasonal naive or drift.
+>
+> (a) Monthly total of people on unemployed benefits in Australia (January 1956 - July 1992). Data set **dole**.
+>
+> (b) Annual Canadian lynx trappings (1821 - 1934). Data set **lynx**.
+>
+> In each case, do you think the forecasts are reasonable? If not, how could they be improved?
+
+## (a)
+
+We are going to start by plotting the data, using time, seasonal and subseries plots.
+
+```{r}
+autoplot(dole, main = "Time plot: Monthly total of people on unemployment benefits in Australia",
+        xlab = "Time",
+        ylab = "Number of people") + theme_bw()
+```
+
+```{r}
+dole_seasonal  <- ggseasonplot(dole,
+        main = "Seasonal plot: Monthly total of people\non unemployment benefits in Australia",
+        xlab = "Time",
+        ylab = "Number of people") + theme_bw()
+dole_pseasonal <- ggseasonplot(dole,
+        main = "Seasonal plot (polar): Monthly total of people \non unemployment benefits in Australia",
+        xlab = "Time",
+        ylab = "Number of people",
+        polar = T) + theme_bw()
+```
+
+```{r}
+par(mar = c(4, 4, .1, .1))
+plot(dole_seasonal)
+plot(dole_pseasonal)
+```
+
+```{r}
+plot(ggsubseriesplot(dole,  
+        main = "Subseries plot: Monthly total of people on unemployment benefits in Australia",
+        xlab = "Month",
+        ylab = "Number of people",) + theme_bw())
+```
+
+We can observe a clearly positive trend over time, as well as an apparent lack of seasonality. Also, in the subseries, we do not see such high peaks in the months from August to December, unlike the rest of the months. However, this is because we only have data up to July 1992, which seems to coincide with a period of significant rise in people on unemployment benefits.
+
+Next, we will look the ACF:
+
+```{r}
+ggAcf(dole) + ggtitle("ACF of Unemployment benefits in Australia") +  theme_bw()
+```
+
+The ACF confirms the positive trend as, when data have a trend, the autocorrelations for small lags tend to be large and positive (due to observations nearby in time are also nearby in size). Also, the ACF of trended time series tend to have positive values that slowly decrease as the lags increase.
+
+Based on this plot, we may think that the most appropiate methods will be the naive methods.
+
+Now, we are going to do the predictions for the next 24 months using the four methods:
+
+```{r}
+dole_mean   <- meanf(dole,h=24)
+dole_naive  <- naive(dole,h=24)
+dole_snaive <- snaive(dole,h=24)
+dole_drift  <- rwf(dole,h=24,drift=TRUE)
+
+plot(dole_mean, PI=FALSE, main="Forecasts for monthtly total of people on unemployment benefits in Australia")
+lines(dole_naive$mean, col=2)
+lines(dole_snaive$mean, col=3)
+lines(dole_drift$mean, col=5)
+legend("topleft", lty=1, cex = .8, col=c(4,2,3,5),
+       legend=c("Mean method","Naive method","Seasonal naive method","Drift method"))
+```
+
+At first glance, none of the methods seem particularly good, with the mean method being perhaps the worst. Based on the graph, it seems unlikely that any of the predictions will be fulfilled, with the drift method being the one that seems closest to what could happen.
+
+We now check the residuals.
+
+```{r}
+summary(residuals(dole_mean))
+checkresiduals(dole_mean)
+```
+
+```{r}
+summary(residuals(dole_naive))
+checkresiduals(dole_naive)
+```
+
+```{r}
+summary(residuals(dole_snaive))
+checkresiduals(dole_snaive)
+```
+
+```{r}
+summary(residuals(dole_drift))
+checkresiduals(dole_drift)
+```
+
+Again, none of the methods seem particularly correct, the naive seems the most correct among them. Now, we will do what the exercise asks for (*"graph with forecasts using the most appropriate of the four benchmark methods"*):
+
+```{r}
+autoplot(dole_naive) + theme_bw()
+```
+
+It can be seen that the confidence intervals are wide.
+
+Forecasts do not seem reasonable for this data set using these methods. To improve them, we see two possible options:
+
+1.  Transform the data. We must take into account that Australia's population has grown from 11.4M inhabitants to 17.5M (according to the [data provided by google](https://www.google.com/search?q=australia+population&client=firefox-b-d&ei=BSDxY--NNtirkdUP4I-_2Ak&oq=australia+popu&gs_lcp=Cgxnd3Mtd2l6LXNlcnAQAxgAMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgcIABCABBAKMgUIABCABDIJCAAQFhAeEPEEMgkIABAWEB4Q8QQ6CggAEEcQ1gQQsAM6BwgAELADEEM6CQgAEEMQRhD7AToECAAQQzoKCAAQsQMQgwEQQzoECC4QQzoLCAAQgAQQsQMQgwE6BwguELEDEEM6BwgAELEDEEM6CAguEIAEELEDOgoILhCABBCxAxAKSgQIQRgAULMIWPIhYPspaAdwAXgAgAFoiAHvCZIBBDExLjOYAQCgAQHIAQrAAQE&sclient=gws-wiz-serp)). This is something to take into account and it would be good to make better comparisons. In addition, there seems to be heterocedasticity in the data, so a mathematical transformation would be convenient.
+
+2.  Use more complex models. The models we have used to make predictions are really simple, and we believe that a more complex model would yield better results.
+
+## (b)
+
+We start again plotting the data. As the data is not seasonal, we will only use the time plot and we wont use any seasonal method.
+
+```{r}
+autoplot(lynx, main = "Time plot: Annual Canadian Lynx trappings",
+        xlab = "Time",
+        ylab = "Number of lynx") + theme_bw()
+```
+
+As stated in Lab1b_Transformation (seem in class), this time series is stationary, although it may not appear so due to cycles, which occur when there are too many lynx for the available feed.
+
+Next, we compute forecast with mean, naive and drift methods and plot them all
+
+```{r}
+lynx_mean   <- meanf(lynx,h=24)
+lynx_naive  <- naive(lynx,h=24)
+lynx_drift  <- rwf(lynx,h=24,drift=TRUE)
+
+plot(lynx_mean, PI=FALSE, main="Forecasts for Annual Canadian Lynx trappings",
+    xlab = "Time",
+    ylab = "Number of lynx")
+lines(lynx_naive$mean, col=2)
+lines(lynx_drift$mean, col=5)
+legend("topleft", lty=1, cex = .7, col=c(4,2,5),
+       legend=c("Mean method","Naive method","Drift method"))
+```
+
+None of the three methods seems to be doing great. Based on the above data and looking at the cycles, we would expect either a continuation of the rise or a fairly steep decline, but none of the methods make forecasts that indicate that.
+Let's check the residuals.
+
+```{r}
+summary(residuals(lynx_mean))
+checkresiduals(lynx_mean)
+```
+
+```{r}
+summary(residuals(lynx_naive))
+checkresiduals(lynx_naive)
+```
+
+```{r}
+summary(residuals(lynx_drift))
+checkresiduals(lynx_drift)
+```
+
+The residuals from none of the methods look remotely good. While the exercise statement calls for *"graph with forecasts using the most appropriate of the four benchmark methods "*, none of them seem remotely appropriate for these data, so we will not graph any of them individually.
+
+Regarding the way to improve the forecast, using more complex methods is the way to go. None of the simple methods used is able to capture the particularities of this time series.
+
+# Exercise 7
+
+> Data set **books** contains the daily sales of paperback and hardcover books at the same store. The task is to forecast the next four days sales for paperback books (data set **books**).
+>
+> (a) Plot the series and discuss the main features of the data.
+>
+> (b) Use simple exponential smoothing with the **ses** function (setting `initial="simple"`) and explore different values of $\alpha$ for the paperback series. Record the within-sample SSE for the one-step forecasts. Plot SSE against $\alpha$ and find which values of $\alpha$ works best. What is the effect of $\alpha$ on the forecasts?
+>
+> (c) Now let **ses** select the optimal value of $\alpha$. Use this value to generate forecasts for the next four days. Compare your results with (b).
+
+## (a)
+
+As said in the problem statement, the data set *books* contains the daily sales of paperback and hardcover books:
+
+```{r}
+books
+```
+
+We can see that the frequency is 1, so there's no seasonality in the data. 
+
+The interest lies in the paperback books so we're going to save the data related to the paperback books sales in a new variable called `paperback`.
+
+```{r}
+paperback <- books[,1]
+```
+
+Now, we do a time plot for the data:
+
+```{r}
+autoplot(paperback, main = "Time plot: Daily sales of paperback books",
+        xlab = "Time",
+        ylab = "Number of books sold") + theme_bw()
+```
+
+At first glance we can see a possible positive trend. We could also talk about the possible existence of cycles but, as it is said in the theory of the subject: *"The duration of a cycle extends over longer period of time, usually two or more years. two or more years."*, and, in this case, we would be talking about cycles of only a few days, so we may have doubts as to whether this is really a cyclical behavior.
+
+Next, we're going to plot the ACF:
+
+```{r}
+ggAcf(paperback) + ggtitle("ACF of daily sales of paperback books") + theme_bw()
+```
+
+The ACF does not seem to show the presence of a positive trend in the data. The high value for r~3 may indicate cycles of length 3, but it is really hard to tell.
+
+Now, looking to the lagplots:
+
+```{r}
+par(mfrow= c(1,2))
+gglagplot(paperback) + ggtitle("Lagged scatterplots for daily sales of paperback books") +
+  theme_bw()
+```
+
+We cannot see the presence of cycles.
+
+## (b)
+
+We start by generating 101 alphas (from 0 to 1 with a step of 0.01) and computing the within-sample SSE for the one-step forecasts for every of these alphas.
+
+```{r}
+alphas <- seq(0,1,0.01)
+fits   <- lapply(alphas, function(alpha) { ses(paperback, initial = "simple", h = 1, alpha = alpha) })
+SSEs   <- lapply(fits, function(fit) {sum(fit$residuals^2)})
+```
+
+Now, we plot each alpha value with its corresponding SSE:
+
+```{r}
+df               <- data.frame(alphas=alphas, SSEs=unlist(SSEs))
+df$label         <- paste("\u03b1 = ",alphas)
+best_found_alpha <- df[which.min(df$SSEs),1]
+
+ggplot(data = df, aes(x = alphas, y = SSEs)) +
+    geom_point(color="black", size=2) +
+    geom_point(data = df[which.min(df$SSEs),], color="green", 
+               size=3) +
+    geom_point(data = df[which.max(df$SSEs),], color="red", 
+               size=3) +
+    geom_text(data = rbind(df[which.min(df$SSEs), ], df[which.max(df$SSEs),]), aes(alphas,SSEs+1500, label=label)) +
+    xlab("\u03b1") +
+    ylab("SSE") + 
+    ggtitle("SSE vs \u03b1 for each value of \u03b1") + 
+    theme_bw()
+```
+
+According to the graph, the best $\alpha$ is 0.21 and the worst is 1. This makes sense as the SES model with an $\alpha=1$ is no more than a naive model.
+
+Answering to *"What is the effect of $\alpha$ on the forecasts?"*, $\alpha$ is changing the weight attached to the observations, with an small $\alpha$ (close to 0) giving more weight to the observations from the more distant past and a big $\alpha$ giving more weight to recent observations. As the model is exponential, we can say that $\alpha=0.21$ (the best $\alpha$ found according to the criteria of minimizing the SSE among all the $\alpha$ tested) is giving importance both to instances from the near and for the far past.
+
+## (c)
+
+To let the `ses` function select the optimum value for $\alpha$ by itself, we need to leave the alpha parameter empty.
+
+```{r}
+fit_auto_alpha <- ses(paperback, initial = "simple", h = 4, alpha = NULL)
+fit_auto_alpha$model
+```
+
+The value found by the function is $\alpha=0.2125$, really close to the value found by us in the previous section.
+
+We plot the forecast with this new $\alpha$:
+
+```{r}
+plot_auto_alpha <- autoplot(fit_auto_alpha, 
+        main = "Forecasts from SES method for paperback (\u03b1 = 0.2125)",
+        xlab = "Time",
+        ylab = "Daily sales of paperback") + theme_bw()
+plot_auto_alpha
+```
+
+Comparing the forecasting with both alphas we can see that they are pretty much the same, being able to observe minimal differences.
+
+```{r}
+plot_found_alpha <- autoplot(ses(paperback, initial = "simple", h = 4, alpha = best_found_alpha), 
+        main = "Forecasts from SES method for paperback (\u03b1 = 0.21)",
+        xlab = "Time",
+        ylab = "Daily sales of paperback") + theme_bw()
+plot_found_alpha
+```
+
