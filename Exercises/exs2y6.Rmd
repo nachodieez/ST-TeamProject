@@ -29,7 +29,7 @@ justifying it:
 
 - `1 - C`. The first time series exhibits seasonal pattern which does not
 appear to have a predominant period.
-This is why we are looking at a corrplot which shows fluctuations in the
+This is why we are looking at a ACF which shows fluctuations in the
 magnitudes of the peaks with yet a repeatable pattern.
 This is precisely what may be found in `C`.
 
