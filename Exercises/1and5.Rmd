@@ -12,7 +12,21 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = F, 
-                      message = F, fig.dim = c(3.5, 5.5))
+                      message = F)
+
+fig <- local({
+    i <- 0
+    ref <- list()
+    list(
+        cap=function(refName, text) {
+            i <<- i + 1
+            ref[[refName]] <<- i
+            paste("Figure ", i, ": ", text, sep="")
+        },
+        ref=function(refName) {
+            ref[[refName]]
+        })
+})
 ```
 
 ```{r, echo = F, results = "hide"}
@@ -61,7 +75,7 @@ frequency(bicoal)
 
 Plotting the series and the first differences:
 
-```{r, fig.cap="Bicoal"}
+```{r, fig.cap=paste("Bicoal")}
 p1 <- autoplot(bicoal, main = "Bituminous coal production \nin the USA", xlab = "Year", 
                ylab = "Bicoal")
 
@@ -74,7 +88,7 @@ It is annual data, therefore it cannot be seasonal.
 
 We can see that there is no overall trend, and there seems to be a cyclic behaviour every 10 years. The plot for the differences resembles white noise. At this point, one could suspect stationarity. For that, we will use the correlogram: 
 
-```{r}
+```{r, fig.cap=paste("Bicoal ACF")}
 ggAcf(bicoal, lag.max = 45, main = "ACF Bituminous coal production")
 ```
 We can observe a sinusoidal pattern, and it goes towards zero. It seems that this time series is stationary, with a cyclic component.
@@ -91,23 +105,25 @@ frequency(bricksq)
 ```
 Plotting the series:
 
-```{r}
+```{r, fig.cap=paste("bricksq plot")}
 par(mfrow=c(1,2))
-p3 <- autoplot(bricksq, main = "Australian clay \nbrick production", xlab = "Year", ylab = "Bricksq")
-p4 <- autoplot(diff(bricksq, lag = 1), main = "Australian clay \nbrick production", xlab = "Year", ylab = "First differences")
+p3 <- autoplot(bricksq, main = "Australian clay \nbrick production", xlab = "Year", 
+               ylab = "Bricksq")
+p4 <- autoplot(diff(bricksq, lag = 1), main = "Australian clay \nbrick production", 
+               xlab = "Year", ylab = "First differences")
 ggarrange(p3, p4, ncol = 2)
 
 ```
 
 Looking at the plot, we can see that there might be a seasonal component and a trend. The series doesn't appear to be stationary. It also seems that there is heterocedasticity.
 
-```{r}
+```{r, fig.cap=paste("ACF bricksq")}
 ggAcf(bricksq, main = "ACF Australian clay brick production")
 ```
 
 As the autocorrelations for the first lags are large and they slowly decrease, we can say that there is a trend. Moreover, we can see that each 4 lags the autocorrelation is higher, a sign of seasonality.
 
-```{r}
+```{r, fig.cap=paste("Bricksq season plot")}
 p5 <- ggseasonplot(bricksq, main = "Australian clay brick production")
 p5
 ```
@@ -115,7 +131,7 @@ There are a few outliers in the Q4 for some years, and all years seem to present
 
 We can appreciate this more clearly in the subseries plot:
 
-```{r}
+```{r, fig.cap=paste("Bricksq subseries plot")}
 p6 <- ggsubseriesplot(bricksq, ylab = "", main = "Australian clay brick production")
 p6
 ```
@@ -131,7 +147,7 @@ frequency(hsales)
 ```
 We have monthly data, thus a seasonal component might exist. 
 
-```{r}
+```{r, fig.cap=paste("Plot for hsales")}
 p7 <- autoplot(hsales, main = "Sales of new one-family \nhouses")
 p8 <- autoplot(diff(hsales, lag = 1), main = "Sales of new one-family \nhouses", xlab = "Year", ylab = "First differences")
 
@@ -140,14 +156,14 @@ ggarrange(p7, p8, ncol = 2)
 
 At a first glance, we can see a cyclical component in the series. There doesn't appear to be any trend. Moreover, a seasonal component can be appreciated within each year.
 
-```{r}
+```{r, fig.cap=paste("Hsales season plot")}
 p9 <- ggseasonplot(hsales, main = "Sales of new one-family \nhouses")
 p9
 ```
 
 We can see that march and april tend to be the months with higher volume, whereas the last months of the year come with a decrease. In August, there seems to be a recuperation with respect to July.
 
-```{r}
+```{r, fig.cap=paste("ACF Hsales")}
 p10 <- ggAcf(hsales, main = "ACF Sales of new one-family \nhouses")
 p10
 ```
@@ -167,13 +183,13 @@ frequency(ibmclose)
 
 Plotting the series:
 
-```{r}
+```{r, fig.cap=paste("Plot for ibmclose")}
 autoplot(ibmclose, main = "IBM stock price")
 ```
 
 The data is daily, so there can't be a seasonal nor cyclic component. It looks like there is a negative trend, although it doesn't seem to be linear.  
 
-```{r}
+```{r, fig.cap=paste("ACF ibmclose")}
 ggAcf(ibmclose, lag.max = 50, main = " ACF IBM stock price")
 ```
 
@@ -183,14 +199,14 @@ The series is definitely not stationary. Correlations are very high and don't go
 
 Using *help*, we can see that the dataset contains the number of user logged on to an internet server each minute over a 100-minute period. Consequently, there won't be a cyclic or seasonal component.
 
-```{r}
+```{r, fig.cap=paste("Plot for internet")}
 frequency(internet)
 autoplot(internet, xlab = "Number of logged users", main = "Internet")
 ```
 
 It doesn't look like there is a trend. The series goes up, then goes down and finally it starts rising again. 
 
-```{r}
+```{r, fig.cap=paste("ACF internet")}
 ggAcf(internet, lag.max = 90, main = "ACF Internet")
 ```
 We can see oscillations between positive and negative autocorrelations, consistent with the ups and downs in the series. It doesn't go rapidly towards zero, so the data is not stationary.
@@ -207,24 +223,25 @@ frequency(writing)
 ```
 Plotting the data:  
 
-```{r}
+```{r, fig.cap=paste("Plot for writing")}
 autoplot(writing, main = "Industry sales", xlab = "French francs")
 ```
 
 We can see a positive linear trend, a strong seasonality and there doesn't seem to be a cyclic component.
 
-```{r}
+```{r, fig.cap=paste("Writing seasonplot")}
 ggseasonplot(writing, main = "Industry sales", xlab = "French francs")
 ```
+
 In this plot, we can appreaciate that each year, values keep getting higher, so there is a positive trend. Furthermore, there is always a big drop in August, possibly related to the vacation period of workers.
 
-```{r}
+```{r, fig.cap=paste("Writing subseries plot")}
 ggsubseriesplot(writing, main = "Industry sales", xlab = "French francs")
 ```
 
 We can see the same information in the subseries plot.
 
-```{r}
+```{r, fig.cap=paste("Writing first differences")}
 autoplot(diff(writing), main = "Industry sales", xlab = "First differences")
 ```
 
@@ -232,7 +249,7 @@ We can see in the first differences series that variability also grows as time p
 
 The correlogram: 
 
-```{r}
+```{r, fig.cap=paste("ACF writing")}
 ggAcf(writing, main = "ACF Industry sales", xlab = "French francs")
 ```
 
@@ -245,25 +262,25 @@ The data below represent the monthly sales (in thousands) of product A for a pla
 (a) Plot the time series of sales of product A. Can you identify any key feature? Explain what you
 see.
 
-```{r}
+```{r, fig.cap=paste("Plot for plastics")}
 autoplot(plastics)
 ```
 
-We can see a strong seasonality component, with an incremental production up to the summer, and then a decrease; and also a positive and linear trend. 
+We can see a strong seasonality component, with an incremental production up to the summer, and then a decrease; and also a positive and linear trend. However, it seems that the decrease of the final cycle is greater than in the rest of them.
 
 (b) Use an STL decomposition to calculate the trend-cycle and seasonal indices. (Experiment with
 having fixed or changing seasonality). Do you see any difference?
 
-With fixed seasonality and default t.window:
+With fixed seasonality and a window for the trend of 5:
 
-```{r}
-fit <- stl(plastics, s.window = "periodic", robust = T)
+```{r, fig.cap=paste("Plastics STL decomposition")}
+fit <- stl(plastics, t.window = 5, s.window = "periodic", robust = T)
 plot(fit)
 ```
 
-With changing seasonality (s.window = 13) and a window for the trend of 5:
+With changing seasonality (s.window = 13):
 
-```{r}
+```{r, fig.cap=paste("Plastics STL decomposition 2")}
 fit2 <- stl(plastics, t.window = 5, s.window = 13, robust = T)
 plot(fit2)
 ```
@@ -285,15 +302,18 @@ We can see that the data has been successfully deseasonalized.
 
 (e) Use a random walk to produce forecasts of the seasonally adjusted data.
 
-```{r}
-plot(rwf(seadj), col = "red", drift = T)
-plot(naive(seadj), col = "blue")
+```{r, fig.cap=paste("Forecast with seasonally adjusted data")}
+autoplot(seadj) +
+    autolayer(rwf(seadj), PI = TRUE) +
+    xlab("Time") + ylab("Plastics") + ggtitle("rfw() forecasting") + theme_bw()
 ```
 
 (f) Re-seasonilize the results to give forecasts on the original scale.
 
-```{r}
-fcast <- forecast(fit2, method = "naive")
+The forecast on a decomposed time series, we forecast the seasonal component and the seasonally adjusted component separately. 
+
+```{r, fig.cap=paste("Forecast on the original scale")}
+fcast <- forecast::forecast(fit2, method = "naive")
 plot(fcast)
 ```
 
