@@ -1,0 +1,1060 @@
+---
+title: "![](uc3m_logo.png) \\ Time Series -- Group Project || Prof. Francesca Lipari"
+author: 
+    - "Jialian Zhou He -- 100407485"
+    - "José Ignacio Díez Ruiz -- 100487766"
+    - "Pablo Vidal Fernández -- 100483812"
+    - "Carlos Roldán Piñero -- 100484904"
+date: "February 2023"
+header-includes:
+  - \renewcommand{\and}{\\}
+output:
+  pdf_document:
+    fig_caption: yes
+  html_document:
+    toc_float: yes
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, include=FALSE}
+library(fpp2)
+library(fpp3)
+library(ggpubr)
+library(forecast)
+library(tseries)
+library(fma)
+library(expsmooth)
+library(lmtest)
+```
+
+
+# Exercise 1 
+
+> Use the appropiate graphics functions, explore features from the following time series: **bicoal**, **bricksq**, **hsales**, **ibmclose**, **Internet**, **writing**.
+>
+> -   Can you spot any seasonality, cyclicity and trend?
+>
+> -   What do you learn about the time series?
+>
+> -   Justify the choice of the graphic function. 
+
+## Bicoal TS
+
+According to the documentation, this time series contains the annual bituminous coal production in the USA between 1920 and 1968.
+
+We check that the frequency of the time series is annual:
+
+```{r}
+frequency(bicoal)
+```
+
+Plotting the series and the first differences:
+
+```{r}
+p1 <- autoplot(bicoal, main = "Bituminous coal production \nin the USA", xlab = "Year", 
+               ylab = "Bicoal")
+
+p2 <- autoplot(diff(bicoal), main = "Bituminous coal production  \nin the USA", 
+               xlab = "Year", ylab = "First difference")
+```
+
+```{r, fig.cap="Bicoal"}
+ggarrange(p1, p2, ncol = 2)
+```
+
+
+It is annual data, therefore it cannot be seasonal.
+
+We can see that there is no overall trend, and there seems to be a cyclic behaviour every 10 years. The plot for the differences resembles white noise. At this point, one could suspect stationarity. For that, we will use the correlogram: 
+
+```{r, fig.cap="Bicoal ACF"}
+ggAcf(bicoal, lag.max = 45) + ggtitle("ACF Bituminous coal production")
+```
+
+We can observe a sinusoidal pattern, and it goes towards zero. It seems that this time series is stationary, with a cyclic component.
+
+
+## Bricksq TS
+
+According to the documentation, this time series contains the Australian quarterly clay brick production between 1956 and 1994.
+
+We check that the frequency of the time series is quarterly.
+
+```{r}
+frequency(bricksq)
+```
+Plotting the series:
+
+```{r, fig.cap=paste("Bricksq plot")}
+par(mfrow=c(1,2))
+p3 <- autoplot(bricksq, main = "Australian clay \nbrick production", xlab = "Year", 
+               ylab = "Bricksq")
+p4 <- autoplot(diff(bricksq, lag = 1), main = "Australian clay \nbrick production", 
+               xlab = "Year", ylab = "First differences")
+ggarrange(p3, p4, ncol = 2)
+```
+
+Looking at the plot, we can see that there might be a seasonal component and a trend. The series doesn't appear to be stationary. It also seems that there is heterocedasticity.
+
+```{r, fig.cap="ACF bricksq"}
+ggAcf(bricksq) + ggtitle("ACF Australian clay brick production")
+```
+
+As the autocorrelations for the first lags are large and they slowly decrease, we can say that there is a trend. Moreover, we can see that each 4 lags the autocorrelation is higher, a sign of seasonality.
+
+```{r, fig.cap="Bricksq seasonal plot"}
+p5 <- ggseasonplot(bricksq) + ggtitle("Australian clay brick production")
+p5
+```
+
+
+There are a few outliers in the Q4 for some years, and all years seem to present a very similar pattern: Q2 and Q3 are higher than Q1 and Q4.
+
+We can appreciate this more clearly in the subseries plot:
+
+```{r, fig.cap=paste("Bricksq subseries plot")}
+p6 <- ggsubseriesplot(bricksq, ylab = "", main = "Australian clay brick production")
+p6
+```
+
+## Hsales TS
+
+According to the documentation, this time series contains the monthly sales of new one-family houses sold in the USA since 1973.
+
+We check that the frequently is monthly:
+
+```{r}
+frequency(hsales)
+```
+We have monthly data, thus a seasonal component might exist. 
+
+```{r, fig.cap=paste("Plot for hsales")}
+p7 <- autoplot(hsales, main = "Sales of new one-family \nhouses")
+p8 <- autoplot(diff(hsales, lag = 1), main = "Sales of new one-family \nhouses", xlab = "Year", ylab = "First differences")
+
+ggarrange(p7, p8, ncol = 2)
+```
+
+At a first glance, we can see a cyclical component in the series. There doesn't appear to be any trend. Moreover, a seasonal component can be appreciated within each year.
+
+```{r, fig.cap=paste("Hsales season plot")}
+p9 <- ggseasonplot(hsales, main = "Sales of new one-family \nhouses")
+p9
+```
+
+We can see that March and April tend to be the months with higher volume, whereas the last months of the year come with a decrease. In August, there seems to be a recuperation with respect to July.
+
+```{r, fig.cap=paste("ACF Hsales")}
+p10 <- ggAcf(hsales) + ggtitle("ACF Sales of new one-family \nhouses")
+p10
+```
+
+
+There are peaks at 12 and 24 in the correlogram, confirming seasonality. There is no evidence for a trend.
+
+## Ibmclose TS
+
+According to the documentation, the series contains the daily closing IBM stock price. 
+
+We check that the frequency is daily:
+
+```{r}
+frequency(ibmclose)
+```
+
+Plotting the series:
+
+```{r, fig.cap=paste("Plot for ibmclose")}
+autoplot(ibmclose, main = "IBM stock price")
+```
+
+The data is daily, so there can't be a seasonal nor cyclic component. It looks like there is a negative trend, although it doesn't seem to be linear.  
+
+```{r, fig.cap=paste("ACF ibmclose")}
+ggAcf(ibmclose, lag.max = 50) + ggtitle("ACF IBM stock price")
+```
+
+The series is definitely not stationary. Correlations are very high and don't go rapidly towards zero, confirming that there is a trend.
+
+## Internet TS
+
+Using *help*, we can see that the dataset contains the number of user logged on to an internet server each minute over a 100-minute period. Consequently, there won't be a cyclic or seasonal component.
+
+```{r, fig.cap=paste("Plot for internet")}
+frequency(internet)
+autoplot(internet, xlab = "Number of logged users", main = "Internet")
+```
+
+It doesn't look like there is a trend. The series goes up, then goes down and finally it starts rising again. 
+
+```{r, fig.cap=paste("ACF internet")}
+ggAcf(internet, lag.max = 90) + ggtitle("ACF Internet")
+```
+
+We can see oscillations between positive and negative autocorrelations, consistent with the ups and downs in the series. It doesn't go rapidly towards zero, so the data is not stationary.
+
+
+## Writing TS
+
+According to the documentation, the series contains the industry sales for printing and writing paper in France from Jan 193 to Dec 1972.
+
+Checking that the frequency is monthly:
+
+```{r}
+frequency(writing)
+```
+
+Plotting the data:  
+
+```{r, fig.cap=paste("Plot for writing")}
+autoplot(writing, main = "Industry sales", xlab = "French francs")
+```
+
+We can see a positive linear trend, a strong seasonality and there doesn't seem to be a cyclic component.
+
+```{r, fig.cap=paste("Writing seasonplot")}
+ggseasonplot(writing, main = "Industry sales", xlab = "French francs")
+```
+
+In this plot, we can appreciate that each year, values keep getting higher, so there is a positive trend. Furthermore, there is always a big drop in August, possibly related to the vacation period of workers.
+
+```{r, fig.cap=paste("Writing subseries plot")}
+ggsubseriesplot(writing, main = "Industry sales", xlab = "French francs")
+```
+
+We can see the same information in the subseries plot.
+
+```{r, fig.cap=paste("Writing first differences")}
+autoplot(diff(writing), main = "Industry sales", xlab = "First differences")
+```
+
+We can see in the first differences series that variability also grows as time passes, hence we have heterocedasticity.
+
+The correlogram: 
+
+```{r, fig.cap=paste("ACF writing")}
+ggAcf(writing) + ggtitle("ACF Industry sales") + xlab("French francs")
+```
+
+Peaks at 12 and 24 confirm the seasonality.
+
+# Exercise 2
+
+> The following time plots and ACF plots correspond to four different
+time series.
+Your task is to match each time plot in the first row with one
+of the ACF plots in the second row.
+
+We will approach this exercise by first giving the chosen match and then
+justifying it:
+
+- `1 - C`. The first time series exhibits seasonal pattern which does not
+appear to have a predominant period.
+This is why we are looking at a corrplot which shows fluctuations in the
+magnitudes of the peaks with yet a repeatable pattern.
+This is precisely what may be found in `C`.
+
+- `2 - B`. This one exhibits a slight positive tendency.
+Nonetheless, the main property of this plot is its heavy seasonal peaks which
+should in turn correspond to the heaviest peaks on the ACF plots.
+This is why we select `B` as the match, having the most prominent peaks
+with a period of 12 months.
+
+- `3 - D`. Once again we have a a slight positive tendency with prominent
+seasonal peaks.
+Nonetheless, this time the tendency appears to be flatter and the peaks are
+less strong overall with respect to `2`.
+As such, we select `D` which haves faster decreasing aurocorrelations than
+`C` while keeping a clear 12 months seasonality.
+
+- `4 - A`. For the last one, we see tendency on the time series and an
+lack of any kind of seasonality.
+Hence the lag plot should follow a slowly decrease without periodic
+peaks, just what `A` shows.
+
+# Exercise 3
+
+> For each of the following series, make a graph of the data with forecasts using the most appropriate of the four benchmark methods: mean, naive, seasonal naive or drift.
+>
+> (a) Monthly total of people on unemployed benefits in Australia (January 1956 - July 1992). Data set **dole**.
+>
+> (b) Annual Canadian lynx trappings (1821 - 1934). Data set **lynx**.
+>
+> In each case, do you think the forecasts are reasonable? If not, how could they be improved?
+
+## (a)
+
+We are going to start by plotting the data, using time, seasonal and subseries plots.
+
+```{r, fig.cap="Time plot", fig.cap="Time plot for the monthly total of people on unemployment benefits in Australia."}
+autoplot(dole, main = "Time plot: Monthly total of people on 
+         unemployment benefits in Australia",
+        xlab = "Time",
+        ylab = "Number of people") + theme_bw()
+```
+
+```{r}
+dole_seasonal  <- ggseasonplot(dole,
+        main = "Seasonal plot: Monthly total of people\non 
+        unemployment benefits in Australia",
+        xlab = "Time",
+        ylab = "Number of people") + theme_bw()
+dole_pseasonal <- ggseasonplot(dole,
+        main = "Seasonal plot (polar): Monthly total
+        of people \non unemployment benefits in Australia",
+        xlab = "Time",
+        ylab = "Number of people",
+        polar = T) + theme_bw()
+```
+
+```{r, out.height="110%", fig.cap="Seasonal plot of monthly total of people on unemployment benefits in Australia"}
+plot(dole_seasonal)
+```
+
+
+```{r, fig.cap="Seasonal polar plot of monthly total of people on unemployment benefits in Australia"}
+plot(dole_pseasonal)
+```
+
+```{r, fig.cap = "Subseries plot for the monthly total of people on unemployment benefits in Australia"}
+plot(ggsubseriesplot(dole,  
+        main = "Subseries plot: Monthly total of people 
+        on unemployment benefits in Australia",
+        xlab = "Month",
+        ylab = "Number of people",) + theme_bw())
+```
+
+We can observe a clearly positive trend over time, as well as an apparent lack of seasonality. Also, in the subseries, we do not see such high peaks in the months from August to December, unlike the rest of the months. However, this is because we only have data up to July 1992, which seems to coincide with a period of significant rise in people on unemployment benefits.
+
+It may also be worth noting that there is usually an increase in the month of December. This can also be seen in the plot subseries, where, although the month of December does not have the data corresponding to the last year (which probably increased its average value), it has an average value similar to those of the months from January to July, which do have the data for the last year. If we remove the data from the last year, it is more clear.
+
+```{r,  fig.cap = "Subseries plot for the monthly total of people on unemployment benefits in Australia (from 1956 to the end of 1991)"}
+plot(ggsubseriesplot(window(dole, 1956, c(1991,12)), # not selecting the last year
+        main = "Subseries plot: Monthly total 
+        of people on unemployment benefits in Australia",
+        xlab = "Month",
+        ylab = "Number of people",) + theme_bw())
+```
+
+
+Next, we will look the ACF:
+
+```{r, fig.cap = "ACF of unemployment benefits in Australia"}
+ggAcf(dole) + ggtitle("ACF of unemployment benefits 
+                      in Australia") +  theme_bw()
+```
+
+The ACF confirms the positive trend as, when data have a trend, the autocorrelations for small lags tend to be large and positive (due to observations nearby in time are also nearby in size). Also, the ACF of trended time series tend to have positive values that slowly decrease as the lags increase.
+
+Based on this plot, we may think that the most appropiate methods will be the naive methods.
+
+Now, we are going to do the predictions for the next 24 months using the four methods:
+
+```{r, fig.cap = "Forecast for monthly total of people on unemployment benefits in Australia"}
+dole_mean   <- meanf(dole,h=24)
+dole_naive  <- naive(dole,h=24)
+dole_snaive <- snaive(dole,h=24)
+dole_drift  <- rwf(dole,h=24,drift=TRUE)
+
+plot(dole_mean, PI=FALSE, main="Forecasts for monthly total of people
+     on unemployment benefits in Australia")
+lines(dole_naive$mean, col=2)
+lines(dole_snaive$mean, col=3)
+lines(dole_drift$mean, col=5)
+legend("topleft", lty=1, cex = .8, col=c(4,2,3,5),
+       legend=c("Mean method","Naive method",
+                "Seasonal naive method","Drift method"))
+```
+
+At first glance, none of the methods seem particularly good, with the mean method being perhaps the worst. Based on the graph, it seems unlikely that any of the predictions will be fulfilled, with the drift method being the one that seems closest to what could happen.
+
+We now check the residuals.
+
+```{r, fig.cap = "Residuals obtained with the mean method in the dole dataset"}
+summary(residuals(dole_mean))
+checkresiduals(dole_mean)
+```
+
+```{r, fig.cap = "Residuals obtained with the naive method in the dole dataset"}
+summary(residuals(dole_naive))
+checkresiduals(dole_naive)
+```
+
+```{r, fig.cap = "Residuals obtained with the seasonal naive method in the dole dataset"}
+summary(residuals(dole_snaive))
+checkresiduals(dole_snaive)
+```
+
+```{r, fig.cap = "Residuals obtained with the drift method in the dole dataset"}
+summary(residuals(dole_drift))
+checkresiduals(dole_drift)
+```
+
+Again, none of the methods seems particularly correct, the naive seems the most correct among them. Now, we will do what the exercise asks for (*"graph with forecasts using the most appropriate of the four benchmark methods"*):
+
+```{r, fig.cap = "Forecasts obtained from the naive method in the dole dataset with confidence intervals (80% and 95%)."}
+autoplot(dole_naive) + theme_bw()
+```
+
+It can be seen that the confidence intervals are wide.
+
+Forecasts do not seem reasonable for this data set using these methods. To improve them, we see two possible options:
+
+1.  Transform the data. We must take into account that Australia's population has grown from 11.4M inhabitants to 17.5M (according to the [data provided by google](https://www.google.com/search?q=australia+population&client=firefox-b-d&ei=BSDxY--NNtirkdUP4I-_2Ak&oq=australia+popu&gs_lcp=Cgxnd3Mtd2l6LXNlcnAQAxgAMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgcIABCABBAKMgUIABCABDIJCAAQFhAeEPEEMgkIABAWEB4Q8QQ6CggAEEcQ1gQQsAM6BwgAELADEEM6CQgAEEMQRhD7AToECAAQQzoKCAAQsQMQgwEQQzoECC4QQzoLCAAQgAQQsQMQgwE6BwguELEDEEM6BwgAELEDEEM6CAguEIAEELEDOgoILhCABBCxAxAKSgQIQRgAULMIWPIhYPspaAdwAXgAgAFoiAHvCZIBBDExLjOYAQCgAQHIAQrAAQE&sclient=gws-wiz-serp)). This is something to take into account and it would be good to make better comparisons. In addition, there seems to be heterocedasticity in the data, so a mathematical transformation would be convenient.
+
+2.  Use more complex models. The models we have used to make predictions are really simple, and we believe that a more complex model would yield better results.
+
+## (b)
+
+We start again plotting the data. As the data is not seasonal, we will only use the time plot and we wont use any seasonal method.
+
+```{r, fig.cap="Time plot for the Annual Canadian Lynx trappings."}
+autoplot(lynx, main = "Time plot: Annual Canadian Lynx trappings",
+        xlab = "Time",
+        ylab = "Number of lynx") + theme_bw()
+```
+
+As stated in Lab1b_Transformation (seem in class), this time series is stationary, although it may not appear so due to cycles, which occur when there are too many lynx for the available feed.
+
+Next, we compute forecast with mean, naive and drift methods and plot them all
+
+```{r, fig.cap="Forecasts for the Annual Canadian Lynx trappings with the mean, naive and drift methods."}
+lynx_mean   <- meanf(lynx,h=24)
+lynx_naive  <- naive(lynx,h=24)
+lynx_drift  <- rwf(lynx,h=24,drift=TRUE)
+
+plot(lynx_mean, PI=FALSE, main="Forecasts for 
+     Annual Canadian Lynx trappings",
+    xlab = "Time",
+    ylab = "Number of lynx")
+lines(lynx_naive$mean, col=2)
+lines(lynx_drift$mean, col=5)
+legend("topleft", lty=1, cex = .7, col=c(4,2,5),
+       legend=c("Mean method","Naive method","Drift method"))
+```
+
+None of the three methods seems to be doing great. Based on the above data and looking at the cycles, we would expect either a continuation of the rise or a fairly steep decline, but none of the methods make forecasts that indicate that.
+Let's check the residuals.
+
+```{r, fig.cap = "Residuals obtained with the mean method in the lynx dataset."}
+summary(residuals(lynx_mean))
+checkresiduals(lynx_mean)
+```
+
+```{r, fig.cap = "Residuals obtained with the naive method in the lynx dataset."}
+summary(residuals(lynx_naive))
+checkresiduals(lynx_naive)
+```
+
+```{r, fig.cap = "Residuals obtained with the drift method in the lynx dataset."}
+summary(residuals(lynx_drift))
+checkresiduals(lynx_drift)
+```
+
+The residuals from none of the methods look remotely good. While the exercise statement calls for *"graph with forecasts using the most appropriate of the four benchmark methods "*, none of them seem remotely appropriate for these data, so we will not graph any of them individually.
+
+Regarding the way to improve the forecast, using more complex methods is the way to go. None of the simple methods used is able to capture the particularities of this time series.
+
+
+# Exercise 4
+
+> Consider the daily IBM stock prices (data set ibmclose).
+>
+> (a) Produce some plots of the data in order to become familiar with it.
+> 
+> (b) Split the data into a training set of 300 observations and a test set of 69 observations.
+>
+> (c) Try various benchmark methods to forecast the training set and compare the results on the test set. Which method did best?
+>
+> (d) For the best method, compute the residuals and plot them. What do the plots tell you?
+
+```{r}
+#  Daily IBM stock prices
+
+ibmclose <- window(ibmclose) 
+head(ibmclose, 24) 
+```
+
+## (a)
+
+The data set contains the daily IBM stock's prices at closure time. 
+
+```{r, fig.align = "center", fig.cap="Daily IBM stock prices."}
+ibmclose %>%  
+autoplot() + xlab("Time")+ ylab("IBM stock prices")+ ggtitle("Daily IBM stock prices") 
+```
+
+The following conclusions can be drawn from this first plot:
+
+- There is not a clear trend: the series has some ups and downs, which makes the series unpredictable.
+
+- There is a big drop in the prices right after the 200 day mark.
+
+- Not seasonal pattern can be detected as the frequency of the data is daily and only for a year.
+
+- The mean method is not going to be the best option due to the heterogeneity and the naïve method will give  the most conservative forecast.
+
+The autocorrelation plot:
+
+```{r, fig.align = "center", fig.cap="ACF of Daily IBM stock prices."}
+ggAcf(ibmclose) + ggtitle("ACF of Daily IBM stock prices")
+```
+
+In the autocorrrelation plot we can conclude that the IBM stock prices are highly correlated with each other. That is to say, when the stock price rises, it tends to continue this way and when it falls, it keeps going downwards.
+
+
+## (b)
+
+```{r, fig.align = "center", fig.cap = "Plot of the split."}
+# Split
+train <- subset(ibmclose, end = 300)
+test  <- subset(ibmclose, start = 301, end = length(ibmclose))
+
+# Plot of the split
+plot(ibmclose, main = "Plot of the split")
+lines(train,col="red")
+lines(test, col="blue")
+```
+
+
+## (c)
+
+```{r, fig.align = "center", fig.cap="Forecasts for IBM stock prices with drift, mean and naïve methods."}
+ibmclosefit1 <- meanf(train,h=69) 
+ibmclosefit2 <- rwf(train,h=69)
+ibmclosefit3 <- rwf(train, drift=TRUE,h=69)
+
+autoplot(train) +
+  autolayer(ibmclosefit1, series="Mean", PI=FALSE) +
+  autolayer(ibmclosefit2, series="Naïve", PI=FALSE) +
+  autolayer(ibmclosefit3, series="Drift", PI=FALSE) +
+  xlab("Day") + ylab("Prices") +
+  ggtitle("Forecasts for IBM stock prices") +
+  guides(colour=guide_legend(title="Forecast"))
+```
+
+The mean method seems to perform the worst out of the three methods, which is to expected as the series is not stationary. And, as it has been stated before, we will be sticking to the naïve method as it gives the most reasonable forecast. 
+
+Now, we will be comparing the results with the real data.
+
+```{r, fig.align = "center", fig.cap="Comparison of the forecasts for IBM stock prices with drift, mean and naïve methods against the real data."}
+autoplot(window(ibmclose)) +
+  autolayer(ibmclosefit1, series="Mean", PI=FALSE) +
+  autolayer(ibmclosefit2, series="Naïve", PI=FALSE) +
+  autolayer(ibmclosefit3, series="Drift", PI=FALSE) +
+  xlab("Day") + ylab("Prices") +
+  ggtitle("Forecasts for IBM stock prices") +
+  guides(colour=guide_legend(title="Forecast"))
+```
+
+In order to evaluate the predictive performance, the **accuracy** been calculated  based on the test set for each forecasting method.
+
+```{r}
+forecast::accuracy(ibmclosefit1, test)
+```
+
+```{r}
+forecast::accuracy(ibmclosefit2, test)
+```
+
+```{r}
+forecast::accuracy(ibmclosefit3, test)
+```
+
+The best results are obtained with the **drift method** for this test set, but the difference with the **naïve method** (the second best) is minimum. However, it cannot be assured that the data will follow the descent trend which is forecast by the drift method. 
+
+## (d)
+
+After the previous section, there are still be some doubts about which is the best method, the naïve or the drift. Therefore, we have computed the residuals for both methods.
+
+```{r, fig.cap="Residuals from the naive method."}
+# Naïve
+train_naive <- naive(train,h=69)
+res_naive   <- residuals(train_naive)
+summary(res_naive)
+checkresiduals(train_naive)
+```
+
+```{r, fig.cap="Residuals from Random walk with drift."}
+# Drift method
+train_drift <- rwf(train, drift=TRUE,h=69)
+res_drift   <- residuals(train_drift)
+summary(res_drift)
+checkresiduals(train_drift)
+```
+
+Although both methods have some lags which exceed the 95% confidence interval, the residual plots do not show any kind of pattern. Therefore, they could behave as white noise.
+
+However, the p-values obtained in the Ljung-Box test for both methods are smaller than 0.05, so the null hypothesis can be rejected: we cannot conclude that the data are not  independently distributed.
+
+
+\begin{align*}
+H_0 &= The \ data \ are \ independently \ distributed \\
+H_1 &= The \ data \ are \ not \ independently \ distributed
+\end{align*}
+
+Finally, looking at the residuals and the normal distribution, we can see that the residuals obtained with the **naïve method** are better adjusted to the gaussian distribution. Hence, the **naïve method** was the correct one in this case.
+
+
+# Exercise 5
+
+> The data below represent the monthly sales (in thousands) of product A for a plastics manufacturer for years 1 through 5 (data set plastics).
+>
+> (a) Plot the time series of sales of product A. Can you identify any key feature? Explain what you see.
+>
+> (b) Use an STL decomposition to calculate the trend-cycle and seasonal indices. (Experiment with having fixed or changing seasonality). Do you see any difference?
+>
+> (c) Please, discuss whether the results support the graphical interpretation form part (a).
+>
+> (d) Compute and plot the seasonally adjusted data.
+>
+> (e) Use a random walk to produce forecasts of the seasonally adjusted data.
+>
+> (f) Re-seasonilize the results to give forecasts on the original scale.
+ 
+
+## (a)
+
+```{r, fig.cap=paste("Plot for plastics")}
+autoplot(plastics)
+```
+
+We can see a strong seasonality component, with an incremental production up to the summer, and then a decrease; and also a positive and linear trend. However, it seems that the decrease of the final cycle is greater than in the rest of them.
+
+
+## (b)
+
+With fixed seasonality and a window for the trend of 5:
+
+```{r, fig.cap=paste("Plastics STL decomposition")}
+fit <- stl(plastics, t.window = 5, s.window = "periodic", robust = T)
+plot(fit)
+```
+
+With changing seasonality (s.window = 13):
+
+```{r, fig.cap=paste("Plastics STL decomposition 2")}
+fit2 <- stl(plastics, t.window = 5, s.window = 13, robust = T)
+plot(fit2)
+```
+
+There are no changes in the seasonality. This must be caused due to the fact that seasonality is indeed fixed. With regard to the trend, as the series ends in the lower part of the cycle, the first estimation uses a greater window than the second and thus it is smoother and with a final negative trend. 
+
+## (c)
+
+We can see a strong seasonality component and a positive trend. As explained before, both decompositions have a trend with a negative slope at the end, but this is due to the abrupt end of the series and should not be considered true.
+
+
+## (d)
+
+```{r}
+seadj <- seasadj(fit2)
+plot(plastics)
+lines(seadj, col = "red")
+```
+
+We can see that the data has been successfully deseasonalized.
+
+## (e)
+
+```{r, fig.cap=paste("Forecast with seasonally adjusted data")}
+autoplot(seadj) +
+    autolayer(rwf(seadj), PI = TRUE) +
+    xlab("Time") + ylab("Plastics") + ggtitle("rfw() forecasting") + theme_bw()
+```
+
+
+## (f)
+
+The forecast on a decomposed time series, we forecast the seasonal component and the seasonally adjusted component separately. 
+
+```{r, fig.cap=paste("Forecast on the original scale")}
+fcast <- forecast::forecast(fit2, method = "naive")
+plot(fcast)
+```
+
+
+# Exercise 6
+
+> Use the monthly Australian short-term overseas visitors data,
+May 1985-April 2005 (Data set visitors).
+>
+> (a) With the help of the appropriate graphical representation,
+please describe the main features of the series.
+>
+> (b) Forecast the next two years using Holt-Winters method according
+to the features you found in the previous point. Justify your choice.
+>
+> (c) Experiment with making the trend exponential and/or damped.
+Do you see any difference?
+Justify your answer.
+>
+> (d) Now fit each of the following models to the same data:
+>    (1) an ETS model
+>    (2) an additive ETS model applied to a Box-Cox transformed series
+>    (3) an STL decomposition applied to the Box-Cox transformed data
+>    followed by an ETS model
+>    applied to the seasonally adjusted (transformed) data.
+>    Plot all the forecasts together.
+>
+> (e) For each model, look at the residual diagnostics and compare the
+forecasts for the next two years. Which do you prefer?
+
+We take the data `visitors` from the `fpp2` package.
+It exhibits the following form:
+
+```{r, fig.cap = "Time series plot of the `visitors` dataset."}
+head(visitors, 5 * 12)
+autoplot(visitors, ylab = "visitors", xlab = "Year",
+         main="Australian short-term overseas visitors") + theme_bw()
+```
+
+## (a)
+
+We note a strong seasonality component with no apparent cyclic behavior
+which can be more prominently shown in a seasonal plot or a polar plot.
+In it we note that there is a yearly period with a clear anual pattern.
+There seems to be also a positive tendency, apparently linear.
+
+```{r, fig.cap = "Seasonal plot for the `visitors` dataset."}
+ggseasonplot(visitors, ylab = "visitors", xlab = "Year",
+             main = "Seasonal plot") + theme_bw()
+```
+
+```{r, fig.cap = "Seasonal polar plot for the `visitors` dataset."}
+ggseasonplot(visitors, ylab = "visitors", xlab = "Year",
+             polar = TRUE, main = "Polar plot") + theme_bw()
+```
+
+Moreover, in the corresponding ACF plot we observe a slowly decreasing
+autocorrelation, hinting tendency, combined with periodicity in the peaks,
+signing mark of seasonality with a 12 month period.
+
+```{r, fig.cap = "Autocorrelations of the `visitor` dataset. Lags are in months."}
+ggAcf(visitors) + ggtitle("ACF plot") + theme_bw()
+```
+
+Let us plot two decomposition graphs, one additive and another multiplicative,
+and then decide which of them better fits our data.
+
+We see the additive one leads to a distribution of the remainder which
+does appear to have heteroskedasticity.
+More precisely, at the later years there are quite prominent peaks compared
+to other time ranges.
+In the center there is kind of a dip.
+
+```{r, fig.cap = "Classical decomposition of the `visitors` data set assuming the underlaying model is additive on the tendency and errors."}
+autoplot(decompose(visitors, "additive")) + theme_bw()
+```
+
+On the other hand, with the multiplicative decomposition we observe a more
+even distribution of remainders, which do not look distributed following
+any pattern, without clear differences between areas.
+
+```{r, fig.cap = "Classical decomposition of the `visitors` data set assuming the underlaying model is multiplicative on the tendency and errors."}
+autoplot(decompose(visitors, "multiplicative")) + theme_bw()
+```
+
+With these facts in mind, we decide the latter, the multiplicative model,
+better fits our data.
+
+## (b)
+
+As discussed before, we will use a multiplicative seasonal decomposition
+when performing a Holter-Winters fit.
+We also decide that, for both, performance of the forecast and numerical
+cost, we will limit the data used for forecasting from the year 2000
+onwards.
+
+```{r, fig.cap = "Forecast of two years using multiplicative Holter-Winters as the the forecasting model."}
+vis_cut <- window(visitors, start = 2000)
+fit_hw  <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12)
+
+autoplot(window(vis_cut, start = 1995)) +
+    autolayer(fit_hw, PI = FALSE, col = "deepskyblue4") +
+    xlab("Year") + ylab("Visitors") + ggtitle("Forecasting 2 years") + theme_bw()
+```
+
+We see that the previously made decision does indeed seem grounded as
+the forecast, at least on the naked eye, does look as a good candidate.
+
+## (c)
+
+We are now tasked with testing the forecast with different options.
+Taking the same Holter-Winters multiplicative model, we experiment
+by choosing exponential trend, damped trend and both of them at once.
+If we plot them together we see that all of them do *a priori* a good
+job in forecasting the following two years.
+In this regards, the exponential trend offers more volatile extrema,
+while the damped offers the smallest.
+The curve with both of them does seem like a middle compromise between
+the exponential and damped models.
+
+```{r, fig.cap = "Forecast of two years using multiplicative Holter-Winters as the the forecasting model with different modifications to the tendency component: exponential, damped and both combined."}
+fit_exp  <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12, exponential = TRUE)
+fit_dam  <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12, damped = TRUE)
+fit_both <- hw(vis_cut, seasonal = "multiplicative", h = 2 * 12,
+               exponential = TRUE, damped = TRUE)
+
+autoplot(window(vis_cut, start = 2000)) +
+    autolayer(fit_exp,  PI = FALSE, series = "Exponential") +
+    autolayer(fit_dam,  PI = FALSE, series = "Damped") +
+    autolayer(fit_both, PI = FALSE, series = "Exp + Damp") +
+    xlab("Year") + ylab("Visitors") + ggtitle("Testing HW hyperparameters") +
+    guides(colour = guide_legend(title ="Model")) + theme_bw()
+```
+
+It seems clear that by eyeballing we will not be able to properly
+select one of these models as the most appropiate.
+Hence we resort to metrics such as AIC, AICc and BIC.
+Looking at them it seems that the previous modifications
+do indeed improve on the forecasting.
+Among them, the exponential and damped takes the edge over the 
+just damped one by a slight margin, giving us an indication that
+reduced extrema better forecasts our time series.
+
+```{r}
+knitr::kable(data.frame(
+    "Default"  = c(fit_hw$model$aic,   fit_hw$model$aicc,   fit_hw$model$bic),
+    "Exp"      = c(fit_exp$model$aic,  fit_exp$model$aicc,  fit_exp$model$bic),
+    "Damped"   = c(fit_dam$model$aic,  fit_dam$model$aicc,  fit_dam$model$bic),
+    "Exp.Damp" = c(fit_both$model$aic, fit_both$model$aicc, fit_both$model$bic),
+    row.names = c("AIC", "AICc", "BIC")
+))
+```
+
+## (d)
+
+This is a just computational part in which are tasked with fitting
+three models:
+
+1. An ETS model.
+Automatically this chooses the model for the error, trend and seasonality
+that better suits our data.
+Note that it chose the same that we used for our Holter-Winter model,
+giving us confidence on our previously extracted conclusions.
+
+```{r}
+fit_ets <- ets(vis_cut)
+summary(fit_ets)
+```
+
+2. An additive ETS model with Box-Cox transformed data.
+Here we impose the additivity of the model but let the algorithm to
+determine the correct $\lambda$ needed for the transformation.
+
+```{r}
+fit_bc  <- ets(vis_cut, model = "AAA", lambda = "auto")
+summary(fit_bc)
+```
+
+3. An additive ETS model applied to the STL-seasonality-freed
+Box-Cox transformed time series.
+Again, we let the algorithm decide the appropriate transformation
+parameter.
+Nonetheless, we fix the seasonality period as 12 months.
+
+```{r}
+fit_stl <- stlm(vis_cut, s.window = 12, method = "ets", lambda = "auto")
+summary(fit_stl)
+```
+
+## (e)
+
+At last, we are tasked with comparing these last three approaches
+to see which of them performs better.
+To do so, we first plot all of them together and see whether there
+is some significant difference between them visible by the naked eye.
+
+If we look at the forecast, we note that the additive ETS applied
+to the Box-Cox transformed data has in general higher values.
+Then, when using the seasonality adjust forecast, there is a shift
+to lower values while keeping a similar shape.
+Lastly, the plain ETS prediction seems to have smaller values in general,
+with more prominent minima.
+
+```{r, fig.cap = "Forecast of two years with three different models: ETS (the algorithm chose 'MAM' as the most appropiated decomposition), additive ETS applied to the Box-Cox transformed data, and additive ETS applied to the seasonally adjusted (via STL decomposition) Box-Cox transformed data."}
+autoplot(vis_cut) +
+    autolayer(forecast::forecast(fit_ets, h = 2 * 12),
+              PI = FALSE, series = "ETS") +
+    autolayer(forecast::forecast(fit_bc,  h = 2 * 12),
+              PI = FALSE, series = "Box-Cox") +
+    autolayer(forecast::forecast(fit_stl, h = 2 * 12),
+              PI = FALSE, series = "BC-Seas") + 
+    xlab("Year") + ylab("Visitors") + ggtitle("Three model comparison") +
+    guides(colour = guide_legend(title ="Model")) + theme_bw()
+```
+
+Again, just by looking at the graph we cannot tell which of them better
+describe our time series.
+Thus we resort to accuracy metrics.
+More exactly, we will be using the `tsCV` function which performs
+cross-validations and return a vector of residuals.
+We then sum the square residuals and declare the one with the
+smallest sum as the most suitable for our case.
+We also plot them to have visual feedback on the magnitude and whether
+they resemble white noise, which all of them do.
+This happens for the last of the models, which performed
+slightly better than the rest, highlighting the vital importance of
+taking the necessary preprocessing steps before fitting and forecasting.
+
+```{r}
+f1 <- function(y, h) { forecast::forecast(ets(y, model = "MAM"), h = h) }
+f2 <- function(y, h) { forecast::forecast(ets(y, model = "AAA",
+                                          lambda = "auto"), h = h) }
+f3 <- function(y, h) { forecast::forecast(
+  stlm(y, s.window = 12, method = "ets", lambda = "auto"), h = h) }
+e1 <- tsCV(vis_cut, f1, h = 1)
+e2 <- tsCV(vis_cut, f2, h = 1)
+e3 <- tsCV(vis_cut, f3, h = 1)
+
+# e3 starts at 2002, we cut them
+e1 <- window(e1, start = 2002)
+e2 <- window(e2, start = 2002)
+e3 <- window(e3, start = 2002)
+
+c(
+    "ETS"     = sqrt(mean(e1 ^ 2, na.rm = TRUE)),
+    "Box-Cox" = sqrt(mean(e2 ^ 2, na.rm = TRUE)),
+    "BC-Seas" = sqrt(mean(e3 ^ 2, na.rm = TRUE))
+)
+```
+
+```{r, fig.cap = "Cross-Validation computed residuals on the `visitors` dataset from year 2002 onwards with three different models: ETS (the algorithm chose 'MAM' as the most appropiated decomposition), additive ETS applied to the Box-Cox transformed data, and additive ETS applied to the seasonally adjusted (via STL decomposition) Box-Cox transformed data."}
+autoplot(e1, series = "ETS") +
+    autolayer(e2, series = "Box-Cox") +
+    autolayer(e3, series = "BC-Seas") +
+    xlab("Year") + ylab("Visitors") + ggtitle("Residuals") +
+    guides(colour = guide_legend(title ="Model")) + theme_bw()
+```
+
+
+# Exercise 7
+
+> Data set **books** contains the daily sales of paperback and hardcover books at the same store. The task is to forecast the next four days sales for paperback books (data set **books**).
+>
+> (a) Plot the series and discuss the main features of the data.
+>
+> (b) Use simple exponential smoothing with the **ses** function (setting `initial="simple"`) and explore different values of $\alpha$ for the paperback series. Record the within-sample SSE for the one-step forecasts. Plot SSE against $\alpha$ and find which values of $\alpha$ works best. What is the effect of $\alpha$ on the forecasts?
+>
+> (c) Now let **ses** select the optimal value of $\alpha$. Use this value to generate forecasts for the next four days. Compare your results with (b).
+
+## (a)
+
+As said in the problem statement, the data set *books* contains the daily sales of paperback and hardcover books:
+
+```{r}
+head(books, 3)
+```
+
+We can see that the frequency is 1, so there's no seasonality in the data. 
+
+The interest lies in the paperback books so we're going to save the data related to the paperback books sales in a new variable called `paperback`.
+
+```{r}
+paperback <- books[,1]
+```
+
+Now, we do a time plot for the data:
+
+```{r, fig.cap="Time plot for the daily sales of paperback books."}
+autoplot(paperback, main = "Time plot: Daily sales of paperback books",
+        xlab = "Time",
+        ylab = "Number of books sold") + theme_bw()
+```
+
+At first glance we can see a possible positive trend. We could also talk about the possible existence of cycles but, as it is said in the theory of the subject: *"The duration of a cycle extends over longer period of time, usually two or more years. two or more years."*, and, in this case, we would be talking about cycles of only a few days, so we may have doubts as to whether this is really a cyclical behavior.
+
+Next, we're going to plot the ACF:
+
+```{r, fig.cap="ACF of daily sales of paperback books."}
+ggAcf(paperback) + ggtitle("ACF of daily sales of paperback books") + theme_bw()
+```
+
+The ACF does not seem to show the presence of a positive trend in the data. The high value for r~3 may indicate cycles of length 3, but it is really hard to tell. 
+
+We have a little theory about this: maybe the days are not necessarily from Monday to Sunday, and it is from Monday to Saturday (1 -> Monday, 6 -> Saturday, 7 -> Monday ...) and that both Wednesdays and Saturdays there are offers, which makes sales on those days go up. This is probably not the case, but it is a silly explanation we found that may explain these "cycles".
+
+Now, looking to the lagplots:
+
+```{r, fig.cap="Lagged scatterplots for daily sales of paperback books."}
+par(mfrow= c(1,2))
+gglagplot(paperback) + ggtitle("Lagged scatterplots for
+                               daily sales of paperback books") +
+  theme_bw()
+```
+
+We cannot see the presence of cycles.
+
+## (b)
+
+We start by generating 101 alphas (from 0 to 1 with a step of 0.01) and computing the within-sample SSE for the one-step forecasts for every of these alphas.
+
+```{r}
+alphas <- seq(0,1,0.01)
+fits   <- lapply(alphas, function(alpha) {ses(paperback, initial = "simple",
+                                              h = 1, alpha = alpha)})
+SSEs   <- lapply(fits, function(fit) {sum(fit$residuals^2)})
+```
+
+Now, we plot each alpha value with its corresponding SSE:
+
+```{r, fig.cap="SSE vs alpha for each value of alpha."}
+df               <- data.frame(alphas=alphas, SSEs=unlist(SSEs))
+df$label         <- paste("a = ",alphas)
+best_found_alpha <- df[which.min(df$SSEs),1]
+
+ggplot(data = df, aes(x = alphas, y = SSEs)) +
+    geom_point(color="black", size=2) +
+    geom_point(data = df[which.min(df$SSEs),], color="green", 
+               size=3) +
+    geom_point(data = df[which.max(df$SSEs),], color="red", 
+               size=3) +
+    geom_text(data = rbind(df[which.min(df$SSEs), ], df[which.max(df$SSEs),]),
+              aes(alphas,SSEs+1500, label=label)) +
+    xlab("alpha") +
+    ylab("SSE") + 
+    ggtitle("SSE vs alpha for each value of alpha") + 
+    theme_bw()
+```
+
+According to the graph, the best $\alpha$ is 0.21 and the worst is 1. This makes sense as the SES model with an $\alpha=1$ is no more than a naive model.
+
+Answering to *"What is the effect of $\alpha$ on the forecasts?"*, $\alpha$ is changing the weight attached to the observations, with an small $\alpha$ (close to 0) giving more weight to the observations from the more distant past and a big $\alpha$ giving more weight to recent observations. As the model is exponential, we can say that $\alpha=0.21$ (the best $\alpha$ found according to the criteria of minimizing the SSE among all the $\alpha$ tested) is giving importance both to instances from the near and for the far past.
+
+## (c)
+
+To let the `ses` function select the optimum value for $\alpha$ by itself, we need to leave the alpha parameter empty.
+
+```{r}
+fit_auto_alpha <- ses(paperback, initial = "simple", h = 4, alpha = NULL)
+fit_auto_alpha$model
+```
+
+The value found by the function is $\alpha=0.2125$, really close to the value found by us in the previous section.
+
+We plot the forecast with this new $\alpha$:
+
+```{r, fig.cap="Forecasts from SES method for paperback (alpha = 0.2125)"}
+plot_auto_alpha <- autoplot(fit_auto_alpha, 
+        main = "Forecasts from SES method for paperback (alpha = 0.2125)",
+        xlab = "Time",
+        ylab = "Daily sales of paperback") + theme_bw()
+plot_auto_alpha
+```
+
+Comparing the forecasting with both alphas we can see that they are pretty much the same, being able to observe minimal differences.
+
+```{r, fig.cap="Forecasts from SES method for paperback (alpha = 0.21)"}
+plot_found_alpha <- autoplot(ses(paperback, initial = "simple", h = 4, 
+                                 alpha = best_found_alpha), 
+        main = "Forecasts from SES method for paperback (alpha = 0.21)",
+        xlab = "Time",
+        ylab = "Daily sales of paperback") + theme_bw()
+plot_found_alpha
+```
+
