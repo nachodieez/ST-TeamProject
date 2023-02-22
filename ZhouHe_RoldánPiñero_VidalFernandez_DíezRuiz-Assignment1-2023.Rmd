@@ -14,7 +14,7 @@ output:
   html_document:
     toc: true
     toc_float: yes
-    theme: cosmic
+    theme: cosmo
   pdf_document:
     fig_caption: yes
 ---
