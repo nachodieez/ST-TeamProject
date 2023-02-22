@@ -12,7 +12,9 @@ header-includes:
   - \renewcommand{\and}{\\}
 output:
   html_document:
+    toc: true
     toc_float: yes
+    theme: cosmic
   pdf_document:
     fig_caption: yes
 ---
