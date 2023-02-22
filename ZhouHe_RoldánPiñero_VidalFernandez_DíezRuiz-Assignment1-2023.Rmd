@@ -11,10 +11,10 @@ date: "February 2023"
 header-includes:
   - \renewcommand{\and}{\\}
 output:
-  pdf_document:
-    fig_caption: yes
   html_document:
     toc_float: yes
+  pdf_document:
+    fig_caption: yes
 ---
 
 
