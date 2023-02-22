@@ -1,10 +1,12 @@
 ---
 title: "![](uc3m_logo.png) \\ Time Series -- Group Project || Prof. Francesca Lipari"
 author: 
-    - "Jialian Zhou He -- 100407485"
-    - "José Ignacio Díez Ruiz -- 100487766"
-    - "Pablo Vidal Fernández -- 100483812"
-    - "Carlos Roldán Piñero -- 100484904"
+    \begin{tabular}{lll}
+        José Ignacio Díez Ruiz & -- & 100487766 \\
+        Carlos Roldán Piñero &  -- & 100484904 \\
+        Pablo Vidal Fernández & -- & 100483812 \\
+        Jialian Zhou He & -- & 100407485 
+    \end{tabular}
 date: "February 2023"
 header-includes:
   - \renewcommand{\and}{\\}
@@ -18,6 +20,7 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(out.width="75%", fig.align="center")
 ```
 
 ```{r, include=FALSE}
@@ -55,11 +58,14 @@ frequency(bicoal)
 Plotting the series and the first differences:
 
 ```{r}
-p1 <- autoplot(bicoal, main = "Bituminous coal production \nin the USA", xlab = "Year", 
+p1 <- autoplot(bicoal, main = "Bituminous coal production \nin the USA", 
+               xlab = "Year", 
                ylab = "Bicoal")
 
-p2 <- autoplot(diff(bicoal), main = "Bituminous coal production  \nin the USA", 
-               xlab = "Year", ylab = "First difference")
+p2 <- autoplot(diff(bicoal), main = "Bituminous coal 
+               production  \nin the USA", 
+               xlab = "Year", 
+               ylab = "First difference")
 ```
 
 ```{r, fig.cap="Bicoal"}
@@ -91,10 +97,13 @@ Plotting the series:
 
 ```{r, fig.cap=paste("Bricksq plot")}
 par(mfrow=c(1,2))
-p3 <- autoplot(bricksq, main = "Australian clay \nbrick production", xlab = "Year", 
+p3 <- autoplot(bricksq, main = "Australian clay \nbrick production", 
+               xlab = "Year", 
                ylab = "Bricksq")
-p4 <- autoplot(diff(bricksq, lag = 1), main = "Australian clay \nbrick production", 
-               xlab = "Year", ylab = "First differences")
+p4 <- autoplot(diff(bricksq, lag = 1), 
+               main = "Australian clay \nbrick production", 
+               xlab = "Year", 
+               ylab = "First differences")
 ggarrange(p3, p4, ncol = 2)
 ```
 
@@ -107,7 +116,8 @@ ggAcf(bricksq) + ggtitle("ACF Australian clay brick production")
 As the autocorrelations for the first lags are large and they slowly decrease, we can say that there is a trend. Moreover, we can see that each 4 lags the autocorrelation is higher, a sign of seasonality.
 
 ```{r, fig.cap="Bricksq seasonal plot"}
-p5 <- ggseasonplot(bricksq) + ggtitle("Australian clay brick production")
+p5 <- ggseasonplot(bricksq) + 
+    ggtitle("Australian clay brick production")
 p5
 ```
 
@@ -117,7 +127,8 @@ There are a few outliers in the Q4 for some years, and all years seem to present
 We can appreciate this more clearly in the subseries plot:
 
 ```{r, fig.cap=paste("Bricksq subseries plot")}
-p6 <- ggsubseriesplot(bricksq, ylab = "", main = "Australian clay brick production")
+p6 <- ggsubseriesplot(bricksq, ylab = "",
+                      main = "Australian clay brick production")
 p6
 ```
 
@@ -134,7 +145,10 @@ We have monthly data, thus a seasonal component might exist.
 
 ```{r, fig.cap=paste("Plot for hsales")}
 p7 <- autoplot(hsales, main = "Sales of new one-family \nhouses")
-p8 <- autoplot(diff(hsales, lag = 1), main = "Sales of new one-family \nhouses", xlab = "Year", ylab = "First differences")
+p8 <- autoplot(diff(hsales, lag = 1), 
+               main = "Sales of new one-family \nhouses", 
+               xlab = "Year", 
+               ylab = "First differences")
 
 ggarrange(p7, p8, ncol = 2)
 ```
@@ -142,14 +156,16 @@ ggarrange(p7, p8, ncol = 2)
 At a first glance, we can see a cyclical component in the series. There doesn't appear to be any trend. Moreover, a seasonal component can be appreciated within each year.
 
 ```{r, fig.cap=paste("Hsales season plot")}
-p9 <- ggseasonplot(hsales, main = "Sales of new one-family \nhouses")
+p9 <- ggseasonplot(hsales, 
+                   main = "Sales of new one-family \nhouses")
 p9
 ```
 
 We can see that March and April tend to be the months with higher volume, whereas the last months of the year come with a decrease. In August, there seems to be a recuperation with respect to July.
 
 ```{r, fig.cap=paste("ACF Hsales")}
-p10 <- ggAcf(hsales) + ggtitle("ACF Sales of new one-family \nhouses")
+p10 <- ggAcf(hsales) + 
+    ggtitle("ACF Sales of new one-family \nhouses")
 p10
 ```
 
@@ -186,13 +202,16 @@ Using *help*, we can see that the dataset contains the number of user logged on 
 
 ```{r, fig.cap=paste("Plot for internet")}
 frequency(internet)
-autoplot(internet, xlab = "Number of logged users", main = "Internet")
+autoplot(internet, 
+         xlab = "Number of logged users",
+         main = "Internet")
 ```
 
 It doesn't look like there is a trend. The series goes up, then goes down and finally it starts rising again. 
 
 ```{r, fig.cap=paste("ACF internet")}
-ggAcf(internet, lag.max = 90) + ggtitle("ACF Internet")
+ggAcf(internet, lag.max = 90) +
+    ggtitle("ACF Internet")
 ```
 
 We can see oscillations between positive and negative autocorrelations, consistent with the ups and downs in the series. It doesn't go rapidly towards zero, so the data is not stationary.
@@ -211,25 +230,33 @@ frequency(writing)
 Plotting the data:  
 
 ```{r, fig.cap=paste("Plot for writing")}
-autoplot(writing, main = "Industry sales", xlab = "French francs")
+autoplot(writing, 
+         main = "Industry sales", 
+         xlab = "French francs")
 ```
 
 We can see a positive linear trend, a strong seasonality and there doesn't seem to be a cyclic component.
 
 ```{r, fig.cap=paste("Writing seasonplot")}
-ggseasonplot(writing, main = "Industry sales", xlab = "French francs")
+ggseasonplot(writing, 
+             main = "Industry sales",
+             xlab = "French francs")
 ```
 
 In this plot, we can appreciate that each year, values keep getting higher, so there is a positive trend. Furthermore, there is always a big drop in August, possibly related to the vacation period of workers.
 
 ```{r, fig.cap=paste("Writing subseries plot")}
-ggsubseriesplot(writing, main = "Industry sales", xlab = "French francs")
+ggsubseriesplot(writing, 
+                main = "Industry sales",
+                xlab = "French francs")
 ```
 
 We can see the same information in the subseries plot.
 
 ```{r, fig.cap=paste("Writing first differences")}
-autoplot(diff(writing), main = "Industry sales", xlab = "First differences")
+autoplot(diff(writing), 
+         main = "Industry sales", 
+         xlab = "First differences")
 ```
 
 We can see in the first differences series that variability also grows as time passes, hence we have heterocedasticity.
@@ -237,7 +264,9 @@ We can see in the first differences series that variability also grows as time p
 The correlogram: 
 
 ```{r, fig.cap=paste("ACF writing")}
-ggAcf(writing) + ggtitle("ACF Industry sales") + xlab("French francs")
+ggAcf(writing) + 
+    ggtitle("ACF Industry sales") +
+    xlab("French francs")
 ```
 
 Peaks at 12 and 24 confirm the seasonality.
